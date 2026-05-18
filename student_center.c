@@ -13,6 +13,9 @@
 #define COURSE_SIZE 30
 #define SECTION_SIZE 20
 #define SUBJECT_COUNT 5
+#define BEST_GRADE 1.0f
+#define WORST_GRADE 5.0f
+#define PASSING_GRADE 3.0f
 
 typedef struct {
     int id;
@@ -93,6 +96,8 @@ void printHeader(const char *title) {
     centerText(3, title);
     gotoxy(4, 5);
     printf("Data File: %s", DATA_FILE);
+    gotoxy(46, 5);
+    printf("Scale: 1.00 best, 5.00 lowest");
 }
 
 void pauseScreen(void) {
@@ -156,7 +161,7 @@ float readFloat(int x, int y, const char *label, float minimum, float maximum) {
         }
 
         gotoxy(x, y + 1);
-        printf("Invalid input. Enter a grade from %.0f to %.0f.       ", minimum, maximum);
+        printf("Invalid input. Enter a grade from %.2f to %.2f.       ", minimum, maximum);
     }
 }
 
@@ -181,7 +186,7 @@ float computeAverage(const Student *student) {
 }
 
 const char *getRemarks(float average) {
-    if (average >= 75.0f) {
+    if (average <= PASSING_GRADE) {
         return "PASSED";
     }
 
@@ -263,7 +268,7 @@ Student inputStudent(int titleRow) {
     gotoxy(7, row + 7);
     printf("Enter Grades");
     for (i = 0; i < SUBJECT_COUNT; i++) {
-        student.grades[i] = readFloat(10, row + 8 + i, SUBJECTS[i], 0.0f, 100.0f);
+        student.grades[i] = readFloat(10, row + 8 + i, SUBJECTS[i], BEST_GRADE, WORST_GRADE);
     }
 
     return student;
@@ -400,7 +405,7 @@ void updateRecord(void) {
     printf("Updating grades for %s", student.name);
 
     for (i = 0; i < SUBJECT_COUNT; i++) {
-        student.grades[i] = readFloat(8, 11 + i, SUBJECTS[i], 0.0f, 100.0f);
+        student.grades[i] = readFloat(8, 11 + i, SUBJECTS[i], BEST_GRADE, WORST_GRADE);
     }
 
     file = fopen(DATA_FILE, "rb+");
@@ -494,10 +499,10 @@ void reportGeneration(void) {
     Student student;
     int count = 0;
     float classTotal = 0.0f;
-    float highest = -1.0f;
-    float lowest = 101.0f;
-    char topStudent[NAME_SIZE] = "";
-    char lowStudent[NAME_SIZE] = "";
+    float bestAverage = WORST_GRADE + 1.0f;
+    float lowestStanding = BEST_GRADE - 1.0f;
+    char bestStudent[NAME_SIZE] = "";
+    char lowestStudent[NAME_SIZE] = "";
 
     printHeader("6. REPORT GENERATION");
 
@@ -539,16 +544,16 @@ void reportGeneration(void) {
         count++;
         classTotal += average;
 
-        if (average > highest) {
-            highest = average;
-            strncpy(topStudent, student.name, NAME_SIZE - 1);
-            topStudent[NAME_SIZE - 1] = '\0';
+        if (average < bestAverage) {
+            bestAverage = average;
+            strncpy(bestStudent, student.name, NAME_SIZE - 1);
+            bestStudent[NAME_SIZE - 1] = '\0';
         }
 
-        if (average < lowest) {
-            lowest = average;
-            strncpy(lowStudent, student.name, NAME_SIZE - 1);
-            lowStudent[NAME_SIZE - 1] = '\0';
+        if (average > lowestStanding) {
+            lowestStanding = average;
+            strncpy(lowestStudent, student.name, NAME_SIZE - 1);
+            lowestStudent[NAME_SIZE - 1] = '\0';
         }
 
         fprintf(report, "%-8d %-24s %-12s %-8d %-9.2f %-8s\n",
@@ -579,8 +584,8 @@ void reportGeneration(void) {
     fprintf(report, "\nTotal Students : %d\n", count);
     if (count > 0) {
         fprintf(report, "Class Average  : %.2f\n", classTotal / count);
-        fprintf(report, "Highest Average: %.2f - %s\n", highest, topStudent);
-        fprintf(report, "Lowest Average : %.2f - %s\n", lowest, lowStudent);
+        fprintf(report, "Best Average   : %.2f - %s\n", bestAverage, bestStudent);
+        fprintf(report, "Lowest Standing: %.2f - %s\n", lowestStanding, lowestStudent);
     }
 
     fclose(data);
